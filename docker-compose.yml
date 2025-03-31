@@ -20,6 +20,22 @@ services:
     networks:
       - app-network
 
+  migrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["/app/migrator", "up"]
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=testdb
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
   postgres:
     image: postgres:15-alpine
     environment:
