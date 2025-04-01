@@ -10,7 +10,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/kurnosovmak/test/internal/auth"
 	"github.com/kurnosovmak/test/internal/config"
+	"github.com/kurnosovmak/test/internal/database"
+	"github.com/kurnosovmak/test/internal/database/repository/user"
 	"github.com/kurnosovmak/test/pkg/logger"
 
 	"go.uber.org/zap"
@@ -50,6 +53,17 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Service is healthy"))
 	})
+
+	dbConnect, err := database.New(&cfg.Database)
+	if err != nil {
+		logger.Fatal("database not create pool connection", zap.Error(err))
+	}
+	defer dbConnect.Close()
+
+	authHandler := auth.NewHandler(auth.NewAuthService(user.NewPgsqlUserRepository(dbConnect)))
+
+	auth.RegisterHandler(authHandler)
+
 	// Start the server
 	logger.Info("Server is starting", zap.String("address", addr))
 	srv := &http.Server{

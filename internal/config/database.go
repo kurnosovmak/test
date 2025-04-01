@@ -7,7 +7,7 @@ type Database struct {
 	Port     int    `mapstructure:"port"`
 	User     string `mapstructure:"user"`
 	Password string `mapstructure:"password"`
-	DBName   string `mapstructure:"dbname"`
+	DBName   string `mapstructure:"name"`
 	SSLMode  string `mapstructure:"sslmode" default:"disable"`
 }
 

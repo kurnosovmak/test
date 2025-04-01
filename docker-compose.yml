@@ -31,6 +31,8 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=testdb
+    volumes:
+      - ./migrations:/app/migrations
     depends_on:
       - postgres
     networks:
