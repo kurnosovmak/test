@@ -14,6 +14,7 @@ import (
 	"github.com/kurnosovmak/test/internal/config"
 	"github.com/kurnosovmak/test/internal/database"
 	"github.com/kurnosovmak/test/internal/database/repository/user"
+	"github.com/kurnosovmak/test/pkg/jwt"
 	"github.com/kurnosovmak/test/pkg/logger"
 
 	"go.uber.org/zap"
@@ -46,13 +47,6 @@ func main() {
 	)
 
 	// Create server address
-	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-
-	// Basic health check handler
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Service is healthy"))
-	})
 
 	dbConnect, err := database.New(&cfg.Database)
 	if err != nil {
@@ -60,11 +54,24 @@ func main() {
 	}
 	defer dbConnect.Close()
 
-	authHandler := auth.NewHandler(auth.NewAuthService(user.NewPgsqlUserRepository(dbConnect)))
+	jwtManager := jwt.NewJWTManager(cfg.JWT.SecretKey, cfg.JWT.TokenDuration)
+
+	authHandler := auth.NewHandler(auth.NewAuthService(user.NewPgsqlUserRepository(dbConnect), jwtManager))
+
+	// Basic health check handler with auth middleware
+	healthHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		userId, _ := jwt.GetUserIDFromContext(r.Context())
+		w.Write([]byte("" + fmt.Sprintf("Service is healthy: user_id=%v", userId)))
+
+	})
+	http.Handle("/health", jwt.AuthMiddleware(healthHandler, jwtManager))
 
 	auth.RegisterHandler(authHandler)
 
 	// Start the server
+	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
+
 	logger.Info("Server is starting", zap.String("address", addr))
 	srv := &http.Server{
 		Addr:    addr,

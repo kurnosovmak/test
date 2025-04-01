@@ -2,6 +2,8 @@ package user
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/kurnosovmak/test/internal/auth"
@@ -47,4 +49,35 @@ func (r *PgsqlUserRepository) Create(ctx context.Context, user *auth.CreateUser)
 	}
 
 	return id, nil
+}
+
+func (r *PgsqlUserRepository) GetByEmail(ctx context.Context, email string) (*auth.User, error) {
+	query := `
+		SELECT 
+		id, username, email, password_hash, created_at, updated_at 
+		FROM users 
+		WHERE email = $1 
+		LIMIT 1
+	`
+
+	tx, err := r.db.GetPool().Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(ctx)
+		} else {
+			tx.Commit(ctx)
+		}
+	}()
+	row := tx.QueryRow(ctx, query, email)
+	var user auth.User
+	if err := row.Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, auth.ErrUserNotFound
+		}
+		return nil, fmt.Errorf("failed to get user by email: %w", err)
+	}
+	return &user, nil
 }

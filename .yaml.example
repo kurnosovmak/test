@@ -11,3 +11,8 @@ db:
   password: postgres
   name: testdb
   sslmode: disable
+
+# Auth Configuration
+jwt:
+  secret: mysecretkey
+  expiration: 1h

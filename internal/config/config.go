@@ -12,6 +12,7 @@ type Config struct {
 		Host string `mapstructure:"host"`
 	} `mapstructure:"app"`
 	Database Database `mapstructure:"db"`
+	JWT      JWT      `mapstructure:"jwt"`
 }
 
 func LoadConfig(path string) (*Config, error) {
