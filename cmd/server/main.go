@@ -11,9 +11,13 @@ import (
 	"time"
 
 	"github.com/kurnosovmak/test/internal/auth"
+	"github.com/kurnosovmak/test/internal/chat"
 	"github.com/kurnosovmak/test/internal/config"
 	"github.com/kurnosovmak/test/internal/database"
+	chatR "github.com/kurnosovmak/test/internal/database/repository/chat"
+	messageR "github.com/kurnosovmak/test/internal/database/repository/message"
 	"github.com/kurnosovmak/test/internal/database/repository/user"
+	"github.com/kurnosovmak/test/internal/message"
 	"github.com/kurnosovmak/test/pkg/jwt"
 	"github.com/kurnosovmak/test/pkg/logger"
 
@@ -58,14 +62,13 @@ func main() {
 
 	authHandler := auth.NewHandler(auth.NewAuthService(user.NewPgsqlUserRepository(dbConnect), jwtManager))
 
-	// Basic health check handler with auth middleware
-	healthHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		userId, _ := jwt.GetUserIDFromContext(r.Context())
-		w.Write([]byte("" + fmt.Sprintf("Service is healthy: user_id=%v", userId)))
+	chatHandler := chat.NewHandler(chat.NewService(chatR.NewPgsqlChatRepository(dbConnect)))
 
-	})
-	http.Handle("/health", jwt.AuthMiddleware(healthHandler, jwtManager))
+	chatHandler.RegisterRoutes(jwtManager)
+
+	messageHandler := message.NewHandler(message.NewService(messageR.NewPgsqlMessageRepository(dbConnect)))
+
+	messageHandler.RegisterRoutes(jwtManager)
 
 	auth.RegisterHandler(authHandler)
 

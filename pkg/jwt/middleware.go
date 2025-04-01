@@ -21,6 +21,14 @@ const (
 // AuthMiddleware проверяет JWT токен и добавляет ID пользователя в контекст
 func AuthMiddleware(next http.Handler, jwtService *JWTManager) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
 		// Получаем токен из заголовка
 		authHeader := r.Header.Get(AuthHeaderKey)
 		if authHeader == "" {
